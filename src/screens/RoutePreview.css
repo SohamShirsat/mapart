@@ -1,0 +1,183 @@
+.route-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Loading ── */
+.route-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 200ms ease;
+}
+
+.route-loading__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+}
+
+.route-loading-svg {
+  width: 160px;
+  height: auto;
+}
+
+.route-loading-path {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: drawPath 1.8s ease-in-out infinite alternate;
+}
+
+.route-loading__text {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--color-text);
+  letter-spacing: 0.04em;
+}
+
+.route-loading__sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: -12px;
+  text-align: center;
+}
+
+/* ── Map ── */
+.route-map-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.route-map {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.route-topbar-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+/* START tooltip */
+.route-tooltip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1em !important;
+  padding: 3px 8px !important;
+  border-radius: var(--radius-sm) !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+}
+
+/* ── Bottom sheet ── */
+.route-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  padding-bottom: calc(20px + var(--safe-bottom));
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+  animation: slideUp 280ms ease;
+}
+
+/* Warning & Error */
+.route-warning,
+.route-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.route-warning {
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  color: var(--color-accent);
+}
+
+.route-error {
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  color: var(--color-accent);
+}
+
+.route-warning svg, .route-error svg { margin-top: 1px; flex-shrink: 0; }
+
+/* Stats */
+.route-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.route-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 14px 8px;
+}
+
+.route-stat__val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-primary);
+}
+
+.route-stat__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.route-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Actions */
+.route-bottom__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.route-export-btn {
+  flex: 1;
+}
