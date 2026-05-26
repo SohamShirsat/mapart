@@ -9,7 +9,7 @@
 /* ── Search bar ── */
 .location-search {
   position: relative;
-  z-index: 20;
+  z-index: 1000;
   padding: 12px 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -125,6 +125,8 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  isolation: isolate; /* contain Leaflet's internal z-indices so they don't override search dropdown */
+  z-index: 1;
 }
 
 .location-map {
@@ -223,6 +225,75 @@
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   flex-shrink: 0;
+}
+
+/* GPS error */
+.location-geo-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  border-radius: var(--radius-md);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.location-geo-error svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Use My Location button */
+.location-use-gps-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  background: rgba(0, 232, 122, 0.06);
+  border: 1.5px solid rgba(0, 232, 122, 0.35);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+  min-height: 52px;
+}
+
+.location-use-gps-btn:active {
+  background: rgba(0, 232, 122, 0.12);
+  border-color: var(--color-primary);
+}
+
+.location-use-gps-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Divider */
+.location-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.location-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.location-divider__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 .location-bottom__selected {

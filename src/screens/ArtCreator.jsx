@@ -13,11 +13,13 @@ import { SHAPES } from '../lib/shapes'
 import { snapToRoads, pathLength, offsetWaypoints } from '../lib/snapToRoads'
 import './ArtCreator.css'
 
-const MIN_SIZE = 200
-const MAX_SIZE = 2000
+const MIN_SIZE = 500
+const MAX_SIZE = 3000
 
-function estKm(meters) { return (meters / 1000).toFixed(1) }
-function estMin(meters) { return Math.round(meters / 1000 * 6) }
+function fmtShapeSize(meters) {
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`
+}
+function estRunMin(meters) { return Math.round(meters * 6 / 1000) }
 
 // Fit map to waypoints
 function MapFitBounds({ waypoints }) {
@@ -176,9 +178,9 @@ export default function ArtCreator() {
 
         <div className="art-panel__cta">
           <div className="art-dist-hint">
-            <span className="art-dist-val">~{estKm(artSizeMeter)} km</span>
+            <span className="art-dist-val">{fmtShapeSize(artSizeMeter)} shape</span>
             <span className="art-dist-sep">·</span>
-            <span className="art-dist-time">~{estMin(artSizeMeter)} min</span>
+            <span className="art-dist-time">~{estRunMin(artSizeMeter * 5)} min run</span>
           </div>
           <Button
             variant="primary"
@@ -250,7 +252,7 @@ function SizeSlider({ value, onChange }) {
   return (
     <div className="size-slider-wrap">
       <div className="size-slider-header">
-        <span className="art-label">Run Distance</span>
+        <span className="art-label">Shape Size</span>
       </div>
       <Slider
         value={value}

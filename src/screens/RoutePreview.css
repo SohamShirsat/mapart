@@ -172,12 +172,115 @@
   flex-shrink: 0;
 }
 
-/* Actions */
-.route-bottom__actions {
+/* Secondary actions row (Regenerate | Adjust Size) */
+.route-secondary-actions {
   display: flex;
+  align-items: stretch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.route-secondary-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 13px 8px;
+  background: var(--color-surface-2);
+  border: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+  min-height: 48px;
+}
+
+.route-secondary-btn:active,
+.route-secondary-btn--active {
+  background: rgba(0, 232, 122, 0.08);
+  color: var(--color-primary);
+}
+
+.route-secondary-divider {
+  width: 1px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Adjust panel */
+.route-adjust-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  animation: slideUp 180ms ease;
+}
+
+.route-adjust-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.route-adjust-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.route-adjust-val {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.route-adjust-actions {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
 
-.route-export-btn {
-  flex: 1;
+.route-adjust-cancel {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
+
+.route-adjust-cancel:active { opacity: 0.5; }
+
+/* Change location */
+.route-change-location {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 6px 0 2px;
+  width: 100%;
+  opacity: 0.6;
+  min-height: 36px;
+}
+
+.route-change-location:active { opacity: 0.3; }

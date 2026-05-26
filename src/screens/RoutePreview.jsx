@@ -1,12 +1,23 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import MapView from '../components/MapView'
 import RouteLayer from '../components/RouteLayer'
 import TopBar from '../components/TopBar'
 import Button from '../components/Button'
+import Slider from '../components/Slider'
 import useMapartStore from '../store/useMapartStore'
 import { snapToRoads, pathLength, offsetWaypoints } from '../lib/snapToRoads'
+import { textToWaypoints } from '../lib/letterToPoints'
+import { shapeToWaypoints } from '../lib/shapeToPoints'
+import { SHAPES } from '../lib/shapes'
 import './RoutePreview.css'
+
+const MIN_SIZE = 500
+const MAX_SIZE = 3000
+
+function fmtShapeSize(m) {
+  return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`
+}
 
 function MapFitBounds({ waypoints }) {
   const map = useMap()
@@ -40,6 +51,17 @@ export default function RoutePreview() {
   const setRouteDistance = useMapartStore((s) => s.setRouteDistance)
   const setRouteStatus = useMapartStore((s) => s.setRouteStatus)
   const setRouteError = useMapartStore((s) => s.setRouteError)
+  const setRawWaypoints = useMapartStore((s) => s.setRawWaypoints)
+  const artSizeMeter = useMapartStore((s) => s.artSizeMeter)
+  const setArtSizeMeter = useMapartStore((s) => s.setArtSizeMeter)
+  const mode = useMapartStore((s) => s.mode)
+  const inputText = useMapartStore((s) => s.inputText)
+  const selectedFont = useMapartStore((s) => s.selectedFont)
+  const selectedShape = useMapartStore((s) => s.selectedShape)
+
+  const [showAdjust, setShowAdjust] = useState(false)
+  const [localSize, setLocalSize] = useState(artSizeMeter)
+  const [adjusting, setAdjusting] = useState(false)
 
   const center = selectedLocation
     ? [selectedLocation.lat, selectedLocation.lng]
@@ -63,6 +85,36 @@ export default function RoutePreview() {
     } catch (e) {
       setRouteStatus('error')
       setRouteError(e.message || 'Could not generate route')
+    }
+  }
+
+  async function handleApplySize() {
+    if (!selectedLocation) return
+    setAdjusting(true)
+    setArtSizeMeter(localSize)
+    setShowAdjust(false)
+    setRouteStatus('loading')
+    setRouteError(null)
+    const { lat, lng } = selectedLocation
+    try {
+      let pts
+      if (mode === 'text') {
+        pts = await textToWaypoints(inputText, selectedFont, lat, lng, localSize)
+      } else {
+        const shape = SHAPES[selectedShape]
+        pts = shapeToWaypoints(shape.path, lat, lng, localSize)
+      }
+      setRawWaypoints(pts)
+      const { snapped, distance } = await snapToRoads(pts)
+      const rawLen = pathLength(pts)
+      setSnappedRoute(snapped)
+      setRouteDistance(distance)
+      setRouteStatus(distance > rawLen * 3 ? 'low_quality' : 'success')
+    } catch (e) {
+      setRouteStatus('error')
+      setRouteError(e.message || 'Could not generate route')
+    } finally {
+      setAdjusting(false)
     }
   }
 
@@ -139,23 +191,70 @@ export default function RoutePreview() {
               </div>
             )}
 
-            <div className="route-bottom__actions">
-              <Button variant="outlined" onClick={handleRegenerate}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            {showAdjust && (
+              <div className="route-adjust-panel">
+                <div className="route-adjust-header">
+                  <span className="route-adjust-label">Shape Size</span>
+                  <span className="route-adjust-val">{fmtShapeSize(localSize)}</span>
+                </div>
+                <Slider
+                  value={localSize}
+                  min={MIN_SIZE}
+                  max={MAX_SIZE}
+                  step={50}
+                  onChange={setLocalSize}
+                  leftLabel="Smaller"
+                  rightLabel="Larger"
+                />
+                <div className="route-adjust-actions">
+                  <button className="route-adjust-cancel" onClick={() => { setShowAdjust(false); setLocalSize(artSizeMeter) }}>
+                    Cancel
+                  </button>
+                  <Button variant="primary" onClick={handleApplySize} disabled={adjusting} fullWidth>
+                    {adjusting ? 'Applying…' : 'Apply & Regenerate'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Secondary actions row */}
+            <div className="route-secondary-actions">
+              <button className="route-secondary-btn" onClick={handleRegenerate}>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8a5 5 0 009.9-1M13 8a5 5 0 01-9.9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                   <path d="M13 4v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Regenerate
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => navigateTo('export')}
-                disabled={!isSuccess}
-                className="route-export-btn"
+              </button>
+              <div className="route-secondary-divider" />
+              <button
+                className={`route-secondary-btn${showAdjust ? ' route-secondary-btn--active' : ''}`}
+                onClick={() => { setLocalSize(artSizeMeter); setShowAdjust(!showAdjust) }}
               >
-                Export Route →
-              </Button>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                Adjust Size
+              </button>
             </div>
+
+            {/* Primary CTA */}
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => navigateTo('export')}
+              disabled={!isSuccess}
+            >
+              Export Route →
+            </Button>
+
+            <button className="route-change-location" onClick={() => navigateTo('location')}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <circle cx="6" cy="5" r="2" stroke="currentColor" strokeWidth="1.3"/>
+                <path d="M6 1C3.79 1 2 2.79 2 5c0 3 4 7 4 7s4-4 4-7c0-2.21-1.79-4-4-4z" stroke="currentColor" strokeWidth="1.3"/>
+              </svg>
+              Change Location
+            </button>
           </div>
         </>
       )}

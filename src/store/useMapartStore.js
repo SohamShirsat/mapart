@@ -9,7 +9,7 @@ const useMapartStore = create((set) => ({
   inputText: '',
   selectedFont: 'block',
   selectedShape: null,
-  artSizeMeter: 500,
+  artSizeMeter: 1200,
 
   // Generated route
   rawWaypoints: [],

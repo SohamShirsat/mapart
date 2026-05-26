@@ -1,31 +1,44 @@
-const BASE = 'https://nominatim.openstreetmap.org'
-const HEADERS = { 'User-Agent': 'Mapart-App/1.0 (contact@mapart.app)' }
+const BASE = 'https://geocode.maps.co'
+const API_KEY = '6a135e524c4f1324628731xiu255373'
 
 export async function searchLocation(query) {
   if (!query || query.trim().length < 2) return []
-  const url = `${BASE}/search?q=${encodeURIComponent(query.trim())}&format=json&limit=6&addressdetails=1`
-  const res = await fetch(url, { headers: HEADERS })
-  if (!res.ok) throw new Error('Search failed')
-  const data = await res.json()
-  return data.map((item) => ({
-    id: item.place_id,
-    displayName: item.display_name,
-    shortName: item.name || item.display_name.split(',')[0],
-    region: [item.address?.city, item.address?.state, item.address?.country].filter(Boolean).join(', '),
-    lat: parseFloat(item.lat),
-    lng: parseFloat(item.lon),
-  }))
+  try {
+    const url = `${BASE}/search?q=${encodeURIComponent(query.trim())}&api_key=${API_KEY}`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`Search failed: ${res.status}`)
+    const data = await res.json()
+    return data.slice(0, 5).map((item, i) => {
+      const parts = item.display_name.split(',').map((s) => s.trim())
+      return {
+        id: item.place_id ?? i,
+        displayName: item.display_name,
+        shortName: parts[0],
+        region: parts.slice(1, 4).filter(Boolean).join(', '),
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+      }
+    })
+  } catch (err) {
+    console.error('searchLocation error:', err)
+    return []
+  }
 }
 
 export async function reverseGeocode(lat, lng) {
-  const url = `${BASE}/reverse?lat=${lat}&lon=${lng}&format=json`
-  const res = await fetch(url, { headers: HEADERS })
-  if (!res.ok) return null
-  const data = await res.json()
-  return {
-    displayName: data.display_name,
-    shortName: data.address?.neighbourhood || data.address?.suburb || data.address?.city || data.display_name.split(',')[0],
-    lat,
-    lng,
+  try {
+    const url = `${BASE}/reverse?lat=${lat}&lon=${lng}&api_key=${API_KEY}`
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const data = await res.json()
+    return {
+      displayName: data.display_name,
+      shortName: data.display_name.split(',')[0].trim(),
+      lat,
+      lng,
+    }
+  } catch (err) {
+    console.error('reverseGeocode error:', err)
+    return null
   }
 }

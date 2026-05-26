@@ -45,6 +45,7 @@ export default function LocationPicker() {
   const [flyTarget, setFlyTarget] = useState(null)
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER)
   const [pendingGeo, setPendingGeo] = useState(false)
+  const [geoError, setGeoError] = useState(null)
   const [locationName, setLocationName] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const inputRef = useRef(null)
@@ -78,23 +79,45 @@ export default function LocationPicker() {
     setSearchOpen(false)
     setFlyTarget({ lat: result.lat, lng: result.lng })
     setMapCenter([result.lat, result.lng])
+    // Confirm location and navigate to creator automatically
+    setSelectedLocation({
+      lat: result.lat,
+      lng: result.lng,
+      displayName: result.displayName,
+    })
+    setTimeout(() => navigateTo('creator'), 900)
   }
 
   function handleCurrentLocation() {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) {
+      setGeoError('GPS not supported on this device')
+      return
+    }
     setPendingGeo(true)
+    setGeoError(null)
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
         const info = await reverseGeocode(lat, lng).catch(() => null)
         const name = info?.shortName || 'Current location'
+        const displayName = info?.displayName || name
         setQuery(name)
         setLocationName(name)
         setFlyTarget({ lat, lng })
         setMapCenter([lat, lng])
         setPendingGeo(false)
+        setSelectedLocation({ lat, lng, displayName })
+        setTimeout(() => navigateTo('creator'), 1000)
       },
-      () => setPendingGeo(false)
+      (err) => {
+        setPendingGeo(false)
+        if (err.code === 1) {
+          setGeoError('Location access denied. Enable GPS in browser settings.')
+        } else {
+          setGeoError('Could not get your location. Try searching instead.')
+        }
+      },
+      { timeout: 10000, maximumAge: 60000 }
     )
   }
 
@@ -195,6 +218,46 @@ export default function LocationPicker() {
 
       {/* Bottom sheet */}
       <div className="location-bottom">
+        {/* GPS error */}
+        {geoError && (
+          <div className="location-geo-error">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/>
+              <path d="M7 4.5v3M7 9v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+            <span>{geoError}</span>
+          </div>
+        )}
+
+        {/* Use My Location CTA */}
+        <button
+          className="location-use-gps-btn"
+          onClick={handleCurrentLocation}
+          disabled={pendingGeo}
+        >
+          {pendingGeo ? (
+            <>
+              <div className="location-geo-spinner" />
+              <span>Getting your location…</span>
+            </>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="2.5" fill="var(--color-primary)"/>
+                <circle cx="8" cy="8" r="5" stroke="var(--color-primary)" strokeWidth="1.4"/>
+                <path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="var(--color-primary)" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+              <span>Use My Current Location</span>
+            </>
+          )}
+        </button>
+
+        <div className="location-divider">
+          <div className="location-divider__line" />
+          <span className="location-divider__label">or search / pan map</span>
+          <div className="location-divider__line" />
+        </div>
+
         <div className="location-bottom__selected">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1a4 4 0 00-4 4c0 3 4 8 4 8s4-5 4-8a4 4 0 00-4-4z" stroke={hasLocation ? 'var(--color-primary)' : 'var(--color-text-muted)'} strokeWidth="1.3" fill="none"/>

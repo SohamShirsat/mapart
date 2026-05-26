@@ -9,7 +9,7 @@
 
 <br>
 
-I run most mornings, and at some point I got curious about GPS art — those traces on Strava that form words and shapes when you're done. I looked for something that could plan the route in advance so I could just follow it, and everything I found either required drawing the path manually or was buried behind a paywall. That was frustrating enough that I spent a few weekends building this instead. Turns out converting font glyphs into GPS coordinates is a more interesting problem than it looks.
+I run most mornings, and at some point I got curious about GPS art - those traces on Strava that form words and shapes when you're done. I looked for something that could plan the route in advance so I could just follow it, and everything I found either required drawing the path manually or was buried behind a paywall. That was frustrating enough that I spent a few weekends building this instead. Turns out converting font glyphs into GPS coordinates is a more interesting problem than it looks.
 
 ---
 

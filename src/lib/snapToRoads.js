@@ -1,66 +1,84 @@
 const OSRM_BASE = 'https://router.project-osrm.org'
+const CHUNK_SIZE = 15    // waypoints per OSRM call — keeps consecutive pts close → roads follow shape
+const MAX_TOTAL  = 180   // downsample cap before chunking
+const BATCH_PAR  = 4     // parallel OSRM calls per batch
 
-// Maximum waypoints OSRM accepts per request
-const MAX_WP = 100
-
-// Downsample waypoints if too many — OSRM has a 100-coordinate limit
 function downsample(points, max) {
   if (points.length <= max) return points
-  const step = points.length / max
-  const result = []
-  for (let i = 0; i < max; i++) {
-    result.push(points[Math.floor(i * step)])
-  }
-  result.push(points[points.length - 1])
-  return result
+  const step = (points.length - 1) / (max - 1)
+  const out = []
+  for (let i = 0; i < max; i++) out.push(points[Math.round(i * step)])
+  return out
 }
 
-// Compute total path length in meters from [{lat,lng}] array
-export function pathLength(points) {
-  if (points.length < 2) return 0
-  let total = 0
-  for (let i = 1; i < points.length; i++) {
-    total += haversine(points[i-1], points[i])
+// Overlapping chunks: last point of chunk N = first point of chunk N+1
+function chunkOverlap(arr, size) {
+  if (arr.length <= size) return [arr]
+  const chunks = []
+  let i = 0
+  while (i < arr.length - 1) {
+    chunks.push(arr.slice(i, Math.min(i + size, arr.length)))
+    i += size - 1
   }
-  return total
+  return chunks
+}
+
+async function routeChunk(pts) {
+  const coords = pts.map((p) => `${p.lng},${p.lat}`).join(';')
+  const res = await fetch(`${OSRM_BASE}/route/v1/walking/${coords}?overview=full&geometries=geojson`)
+  if (!res.ok) throw new Error(`OSRM ${res.status}`)
+  const data = await res.json()
+  if (!data.routes?.length) throw new Error('No route')
+  return {
+    points: data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng })),
+    distance: data.routes[0].distance,
+  }
 }
 
 function haversine(a, b) {
   const R = 6371000
   const dLat = (b.lat - a.lat) * Math.PI / 180
   const dLng = (b.lng - a.lng) * Math.PI / 180
-  const lat1 = a.lat * Math.PI / 180
-  const lat2 = b.lat * Math.PI / 180
-  const x = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2
-  return 2 * R * Math.asin(Math.sqrt(x))
+  const sinDLat = Math.sin(dLat / 2)
+  const sinDLng = Math.sin(dLng / 2)
+  const c = sinDLat * sinDLat + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinDLng * sinDLng
+  return 2 * R * Math.asin(Math.sqrt(c))
+}
+
+export function pathLength(points) {
+  if (points.length < 2) return 0
+  let total = 0
+  for (let i = 1; i < points.length; i++) total += haversine(points[i - 1], points[i])
+  return total
 }
 
 export async function snapToRoads(waypoints) {
-  if (!waypoints || waypoints.length < 2) {
-    throw new Error('Need at least 2 waypoints')
+  if (!waypoints || waypoints.length < 2) throw new Error('Need at least 2 waypoints')
+
+  const sampled = downsample(waypoints, MAX_TOTAL)
+  const chunks = chunkOverlap(sampled, CHUNK_SIZE)
+
+  // Process in parallel batches to avoid overwhelming the public OSRM API
+  const results = []
+  for (let i = 0; i < chunks.length; i += BATCH_PAR) {
+    const batch = chunks.slice(i, i + BATCH_PAR)
+    const batchResults = await Promise.all(batch.map(routeChunk))
+    results.push(...batchResults)
   }
 
-  const sampled = downsample(waypoints, MAX_WP)
-  const coords = sampled.map((p) => `${p.lng},${p.lat}`).join(';')
-
-  const url = `${OSRM_BASE}/route/v1/walking/${coords}?overview=full&geometries=geojson`
-
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`OSRM error ${res.status}`)
-
-  const data = await res.json()
-  if (!data.routes || data.routes.length === 0) throw new Error('No route found')
-
-  const route = data.routes[0]
-  const coordinates = route.geometry.coordinates // [lng, lat] order
-  const snapped = coordinates.map(([lng, lat]) => ({ lat, lng }))
-  const distance = route.distance // meters
+  // Concatenate — skip first point of each chunk after the first (shared boundary)
+  const snapped = []
+  let distance = 0
+  for (let i = 0; i < results.length; i++) {
+    const pts = i === 0 ? results[i].points : results[i].points.slice(1)
+    snapped.push(...pts)
+    distance += results[i].distance
+  }
 
   return { snapped, distance }
 }
 
-// Apply a small random offset to waypoints (for regeneration)
-export function offsetWaypoints(waypoints, maxDeltaDeg = 0.0005) {
+export function offsetWaypoints(waypoints, maxDeltaDeg = 0.0003) {
   const dLat = (Math.random() * 2 - 1) * maxDeltaDeg
   const dLng = (Math.random() * 2 - 1) * maxDeltaDeg
   return waypoints.map((p) => ({ lat: p.lat + dLat, lng: p.lng + dLng }))
